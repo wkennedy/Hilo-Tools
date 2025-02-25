@@ -1,6 +1,27 @@
 // Hylo Protocol Calculators JavaScript
 document.addEventListener('DOMContentLoaded', function () {
     // Tab functionality
+    const chartTabs = document.querySelectorAll('.chart-tab');
+
+    chartTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Remove active class from all tabs
+            chartTabs.forEach(t => t.classList.remove('active'));
+
+            // Add active class to clicked tab
+            tab.classList.add('active');
+
+            // Hide all chart grids
+            document.getElementById('main-charts').style.display = 'none';
+            document.getElementById('leverage-charts').style.display = 'none';
+            document.getElementById('changes-charts').style.display = 'none';
+
+            // Show the selected chart grid
+            const chartType = tab.getAttribute('data-chart');
+            document.getElementById(`${chartType}-charts`).style.display = 'grid';
+        });
+    });
+
     const tabs = document.querySelectorAll('.tab');
     const tabContents = document.querySelectorAll('.tab-content');
 
@@ -38,6 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Chart instances
 let priceChart, crChart, xsolChart, conversionChart;
+let effectiveLeverageChart, priceCompareChart, crChangeChart, bufferAboveDepegChart;
 
 // APY Calculator Functions
 function calculateApy() {
@@ -290,12 +312,15 @@ function runDetailedSimulation(initialTvl, hyusdSupply, stakedPercentage, initia
 
     // Initialize variable reserve and xSOL
     const variableReserve = initialTvl - hyusdSupply;
-    const xsolSupply = variableReserve / (initialSolPrice / 2); // Assuming initial xSOL price is half of SOL
+    const xsolSupply = variableReserve / (initialSolPrice / 2);
     const initialXsolPrice = variableReserve / xsolSupply;
 
     // Generate price path
     const totalDays = dropDays + 10; // 10 days of recovery
     const pricePath = [];
+
+    // Pre-allocate simulation data array using totalDays
+    const simulationData = new Array(totalDays);
 
     // Price drop phase
     for (let day = 0; day <= dropDays; day++) {
@@ -308,13 +333,12 @@ function runDetailedSimulation(initialTvl, hyusdSupply, stakedPercentage, initia
     const lowestPrice = initialSolPrice * (1 - (dropPercent / 100));
     for (let day = 1; day <= 10; day++) {
         const recoveryProgress = day / 10;
-        const recoveryAmount = (initialSolPrice - lowestPrice) * 0.7; // Recover 70% of the drop
+        const recoveryAmount = (initialSolPrice - lowestPrice) * 0.7;
         const dayPrice = lowestPrice + (recoveryProgress * recoveryAmount);
         pricePath.push(dayPrice);
     }
 
     // Run simulation day by day
-    const simulationData = [];
     let currentXsolSupply = xsolSupply;
 
     for (let day = 0; day < pricePath.length; day++) {
@@ -326,41 +350,47 @@ function runDetailedSimulation(initialTvl, hyusdSupply, stakedPercentage, initia
         // Calculate daily CR
         const dailyCr = (currentTvl / currentHyusdSupply) * 100;
 
-        // Initialize day data
+        // Initialize day data with enhanced analytics
         const dayData = {
             day,
             solPrice: currentSolPrice,
+            solPriceChangePercent: ((currentSolPrice / initialSolPrice) - 1) * 100,
             tvl: currentTvl,
+            tvlChangePercent: ((currentTvl / initialTvl) - 1) * 100,
             collateralRatio: dailyCr,
+            crChangeFromInitial: dailyCr - initialCr,
+            crChangePercent: ((dailyCr / initialCr) - 1) * 100,
             stabilityMode: dailyCr <= 130 ? 'mode2' : (dailyCr <= 150 ? 'mode1' : 'normal'),
             hyusdSupply: currentHyusdSupply,
             stakedHyusd,
-            hyusdConverted: 0, // Initialize to 0
-            xsolMinted: 0       // Initialize to 0
+            hyusdConverted: 0,
+            xsolMinted: 0,
+            daysSinceStart: day
         };
 
         // Calculate xSOL price
         const currentVariableReserve = currentTvl - currentHyusdSupply;
         dayData.xsolPrice = currentXsolSupply > 0 ?
             currentVariableReserve / currentXsolSupply : initialXsolPrice;
+        dayData.xsolPriceChangePercent = ((dayData.xsolPrice / initialXsolPrice) - 1) * 100;
+
+        // Calculate xSOL leverage (using initialCr in formula)
+        dayData.effectiveLeverage = Math.abs(dayData.xsolPriceChangePercent / dayData.solPriceChangePercent) || 0;
 
         // Apply stability mode actions
         if (dailyCr <= 130) {
-            // Convert some staked hyUSD to xSOL - make this more aggressive to be visible
-            // Original formula may generate very small numbers that don't show up on the chart
-            const conversionRate = Math.min(0.2, (130 - dailyCr) / 100); // Up to 20% daily conversion, and more sensitive to CR
+            // Make conversion rate proportional to distance from initialCr
+            const severityFactor = (initialCr - dailyCr) / initialCr; // How far we've fallen from initial CR
+            const conversionRate = Math.min(0.2, (130 - dailyCr) / 100) * (1 + severityFactor);
             const dailyConversion = Math.min(stakedHyusd, stakedHyusd * conversionRate);
 
-            // Ensure we have a minimum value to show on chart if any conversion happens
             dayData.hyusdConverted = Math.max(dailyConversion, 0.001);
+            dayData.conversionPercentOfStaked = (dayData.hyusdConverted / stakedHyusd) * 100;
 
-            // Only update pools if there's actual conversion
             if (dailyConversion > 0) {
-                // Update staked and total hyUSD
                 stakedHyusd -= dailyConversion;
                 currentHyusdSupply -= dailyConversion;
 
-                // Mint equivalent xSOL
                 const xsolMinted = dailyConversion / dayData.xsolPrice;
                 currentXsolSupply += xsolMinted;
                 dayData.xsolMinted = xsolMinted;
@@ -372,22 +402,32 @@ function runDetailedSimulation(initialTvl, hyusdSupply, stakedPercentage, initia
         dayData.stakedHyusd = stakedHyusd;
         dayData.xsolSupply = currentXsolSupply;
 
-        // Add to simulation data
-        simulationData.push(dayData);
+        // Calculate distance from depeg (100% CR)
+        dayData.depegBuffer = dailyCr - 100;
+        dayData.depegBufferPercent = (dailyCr / 100) - 1;
+
+        // Store in pre-allocated array
+        simulationData[day] = dayData;
     }
 
-    // Ensure we have data to display in the conversion chart
+    // Add recovery metrics
+    simulationData.totalCrRecovery = simulationData[simulationData.length - 1].collateralRatio -
+        simulationData[dropDays].collateralRatio;
+
+    // Ensure conversion data for visualization
     const hasConversions = simulationData.some(day => day.hyusdConverted > 0);
     if (!hasConversions) {
-        // If no conversions occurred, add a small amount on the worst day for visualization
         const worstDay = simulationData.reduce((worst, current) =>
-            current.collateralRatio < worst.collateralRatio ? current : worst, simulationData[0]);
-        worstDay.hyusdConverted = stakedHyusd * 0.01; // 1% conversion for visualization
+            current?.collateralRatio < worst?.collateralRatio ? current : worst, simulationData[0]);
+        if (worstDay) {
+            worstDay.hyusdConverted = stakedHyusd * 0.01;
+        }
     }
+
+    document.getElementById('initial-cr').textContent = `${initialCr.toFixed(2)}%`;
 
     return simulationData;
 }
-
 
 // Update the charts function
 function updateCharts(simulationData) {
@@ -595,6 +635,91 @@ function updateCharts(simulationData) {
 
     const conversionCtx = document.getElementById('conversion-chart').getContext('2d');
     conversionChart = new Chart(conversionCtx, conversionChartConfig);
+
+    // After creating the four main charts, add these new charts
+    // Leverage effect charts
+    if (effectiveLeverageChart) effectiveLeverageChart.destroy();
+    if (priceCompareChart) priceCompareChart.destroy();
+    if (crChangeChart) crChangeChart.destroy();
+    if (bufferAboveDepegChart) bufferAboveDepegChart.destroy();
+
+    const leverageCtx = document.getElementById('leverage-chart').getContext('2d');
+    effectiveLeverageChart = new Chart(leverageCtx, {
+        type: 'line',
+        data: {
+            labels: simulationData.map(day => `Day ${day.day}`),
+            datasets: [{
+                label: 'Effective Leverage',
+                data: simulationData.map(day => day.effectiveLeverage || 0),
+                borderColor: 'purple',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {title: {display: true, text: 'xSOL Effective Leverage'}}
+        }
+    });
+
+    const priceCompareCtx = document.getElementById('price-compare-chart').getContext('2d');
+    priceCompareChart = new Chart(priceCompareCtx, {
+        type: 'line',
+        data: {
+            labels: simulationData.map(day => `Day ${day.day}`),
+            datasets: [
+                {
+                    label: 'SOL Price %',
+                    data: simulationData.map(day => day.solPriceChangePercent || 0),
+                    borderColor: 'blue',
+                },
+                {
+                    label: 'xSOL Price %',
+                    data: simulationData.map(day => day.xsolPriceChangePercent || 0),
+                    borderColor: 'red',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {title: {display: true, text: 'Price Change Comparison (%)'}}
+        }
+    });
+
+    // Changes from initial charts
+    const crChangeCtx = document.getElementById('cr-change-chart').getContext('2d');
+    crChangeChart = new Chart(crChangeCtx, {
+        type: 'line',
+        data: {
+            labels: simulationData.map(day => `Day ${day.day}`),
+            datasets: [{
+                label: 'CR Change from Initial',
+                data: simulationData.map(day => day.crChangeFromInitial || 0),
+                borderColor: 'green',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {title: {display: true, text: 'Collateral Ratio Change'}}
+        }
+    });
+
+    const depegBufferCtx = document.getElementById('depeg-buffer-chart').getContext('2d');
+    bufferAboveDepegChart = new Chart(depegBufferCtx, {
+        type: 'line',
+        data: {
+            labels: simulationData.map(day => `Day ${day.day}`),
+            datasets: [{
+                label: 'Buffer Above Depeg (%)',
+                data: simulationData.map(day => day.depegBuffer || 0),
+                borderColor: '#ff7300',
+                backgroundColor: 'rgba(255, 115, 0, 0.1)',
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {title: {display: true, text: 'Distance from Depeg (100% CR)'}}
+        }
+    });
 }
 
 // Helper functions for calculations

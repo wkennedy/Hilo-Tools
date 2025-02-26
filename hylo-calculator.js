@@ -330,6 +330,23 @@ function runStressTest() {
 
 /**
  * Get scenario parameters based on selection
+ *
+ * Value-at-Risk (VaR) 99.9% refers to a statistical risk measure that estimates the maximum potential loss in value
+ * over a specified time period under normal market conditions, with 99.9% confidence.
+ * In Hylo's context, their VaR analysis shows:
+ *
+ * 99.9% VaR of -32.95% for a one-day SOL price drop
+ * 99.9% VaR of -56.82% for a 31-day SOL price drop
+ *
+ * This means there's only a 0.1% probability (one day in a thousand) that SOL would experience a larger price drop
+ * than these values in the specified timeframes.
+ * The protocol uses these VaR calculations to set their stability thresholds:
+ *
+ * The 150% CR threshold for Stability Mode 1 is designed to handle the one-day 99.9% VaR scenario
+ * The 230% Adjusted CR target accounts for the 31-day 99.9% VaR scenario
+ *
+ * This approach provides statistical confidence that the protocol can withstand extreme but plausible market conditions.
+ *
  * @param {string} scenario - Selected scenario
  * @returns {Object} Parameters for scenario
  */

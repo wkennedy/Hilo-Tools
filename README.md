@@ -2,6 +2,8 @@
 
 A suite of interactive calculators to analyze and visualize the [Hylo](https://docs.hylo.so/introduction) Protocol's dual-token stablecoin system.
 
+Click [here](https://wkennedy.github.io/HiLo-Tools/) to see it in action.
+
 ## Overview
 
 These calculators help users understand and evaluate the Hylo Protocol, a DeFi stablecoin system built on Solana using Liquid Staking Tokens (LSTs) as collateral. The protocol features a dual-token system with hyUSD (stablecoin) and xSOL (leveraged token) sharing a common collateral pool.
@@ -25,13 +27,50 @@ These calculators help users understand and evaluate the Hylo Protocol, a DeFi s
 - Track stability pool drawdowns and protocol responses
 - Analyze potential depeg scenarios
 
-## Live Charts
+### Live Charts
 
 The stress test includes four interactive charts powered by Chart.js:
 - SOL Price Path: Shows price trajectory during the selected scenario
 - Collateral Ratio: Displays CR changes with stability mode thresholds
 - xSOL Price: Demonstrates the leveraged effect on xSOL
 - Daily hyUSD Conversion: Visualizes when and how much hyUSD is converted to xSOL
+
+
+### Other Notes
+
+**NAV calculation of hyUSD and xSOL:**
+
+The simulation uses the basic formula: hyUSD NAV in SOL = 1 / SOL Price
+xSOL NAV is calculated from variable reserve: Variable Reserve = Total SOL in Reserve - (hyUSD NAV × hyUSD Supply)
+
+**Collateral Ratio calculation:**
+
+Applied as CR = (TVL / hyUSD Supply) × 100%
+It is the same formula: Collateral Ratio = Total SOL In Reserve / (hyUSD NAV In SOL × hyUSD Supply)
+
+**xSOL Effective Leverage:**
+
+Calculated according to the definition of Effective Leverage = Total SOL In Reserve / Market Cap xSOL
+The simulation illustrates this through leverage effect on xSOL price under market stress
+
+**Stability pool yield:**
+
+The APY calculator uses the underlying yield distribution formula
+With TVL, staked percentage, and distribution ratio
+
+**VaR analysis:**
+
+The stress test covers scenarios generated from VaR analysis, including the 99.9% VaR of -33% for a one-day drop
+
+**The calculators do not have:**
+
+True LST value calculation via Sanctum (simplified as 1:1)
+Multiple LST types with different yields
+Minting/redeeming bounties
+Recapitalization mechanisms
+Market liquidity considerations
+
+These aspects can be added in future updates to make the simulation more realistic.
 
 ## Installation
 

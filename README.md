@@ -83,6 +83,27 @@ git clone https://github.com/yourusername/hylo-protocol-calculators.git
 
 No server required - runs entirely in the browser.
 
+## Testing
+
+Run tests with Jest:
+
+```
+npm test
+```
+
+Run tests in watch mode:
+
+```
+npm run test:watch
+```
+
+Generate coverage report:
+
+```
+npm run test:coverage
+```
+
+
 ## Protocol Mechanics
 
 The calculators simulate key Hylo Protocol features including:

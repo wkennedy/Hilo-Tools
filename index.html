@@ -8,309 +8,342 @@
 </head>
 <body>
 <div class="container">
-    <div class="header">
-        <h1>Hylo Protocol Calculators</h1>
-        <p>Evaluate APY, depeg risk, and leverage for Hylo's dual-token system</p>
-    </div>
+    <!-- Header and navigation templates -->
+    <template id="header-template">
+        <div class="header">
+            <h1>Hylo Protocol Calculators</h1>
+            <p>Evaluate APY, depeg risk, and leverage for Hylo's dual-token system</p>
+        </div>
+    </template>
 
-    <div class="tabs">
-        <div class="tab active" data-tab="apy">APY Calculator</div>
-        <div class="tab" data-tab="depeg">Depeg Risk Calculator</div>
-        <div class="tab" data-tab="stress">Stress Test</div>
-    </div>
+    <template id="nav-template">
+        <div class="tabs">
+            <div class="tab active" data-tab="apy">APY Calculator</div>
+            <div class="tab" data-tab="depeg">Depeg Risk Calculator</div>
+            <div class="tab" data-tab="stress">Stress Test</div>
+        </div>
+    </template>
 
-    <!-- APY Calculator -->
-    <div class="tab-content active" id="apy-calculator">
-        <div class="calculator">
-            <h2>hyUSD Staking APY Calculator</h2>
-            <div class="grid">
-                <div>
-                    <div class="input-group">
-                        <label for="tvl">Total Protocol TVL (USD)</label>
-                        <input type="number" id="tvl" value="10000000" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="hyusd-supply">hyUSD Supply</label>
-                        <input type="number" id="hyusd-supply" value="5000000" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="staked-percentage">Staked hyUSD Percentage (%)</label>
-                        <input type="number" id="staked-percentage" value="30" min="1" max="100">
-                    </div>
-                    <div class="input-group">
-                        <label for="base-yield">Base LST Yield (%)</label>
-                        <input type="number" id="base-yield" value="8" min="0" max="100">
-                    </div>
-                    <div class="input-group">
-                        <label for="yield-distribution">Yield Distribution to Stakers (%)</label>
-                        <input type="number" id="yield-distribution" value="80" min="0" max="100">
-                    </div>
-                    <button id="calculate-apy">Calculate APY</button>
-                </div>
-
-                <div class="results" id="apy-results">
-                    <h3>Staking Rewards Analysis</h3>
-                    <div class="result-item">
-                        <span class="result-label">Collateral Ratio:</span>
-                        <span class="result-value" id="collateral-ratio">200.00%</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Current Staking APY:</span>
-                        <span class="result-value" id="current-apy">21.33%</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Effective Yield Multiple:</span>
-                        <span class="result-value" id="yield-multiple">2.67x</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Risk-Adjusted APY:</span>
-                        <span class="result-value" id="risk-adjusted-apy">19.84%</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Annual Yield for $1,000:</span>
-                        <span class="result-value" id="annual-yield">$213.33</span>
+    <!-- APY Calculator Template -->
+    <template id="apy-calculator-template">
+        <div class="tab-content" id="apy-calculator">
+            <div class="calculator">
+                <h2>hyUSD Staking APY Calculator</h2>
+                <div class="grid">
+                    <div>
+                        <div class="input-group">
+                            <label for="tvl">Total Protocol TVL (USD)</label>
+                            <input type="number" id="tvl" value="10000000" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="hyusd-supply">hyUSD Supply</label>
+                            <input type="number" id="hyusd-supply" value="5000000" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="staked-percentage">Staked hyUSD Percentage (%)</label>
+                            <input type="number" id="staked-percentage" value="30" min="1" max="100">
+                        </div>
+                        <div class="input-group">
+                            <label for="base-yield">Base LST Yield (%)</label>
+                            <input type="number" id="base-yield" value="8" min="0" max="100">
+                        </div>
+                        <div class="input-group">
+                            <label for="yield-distribution">Yield Distribution to Stakers (%)</label>
+                            <input type="number" id="yield-distribution" value="80" min="0" max="100">
+                        </div>
+                        <button id="calculate-apy">Calculate APY</button>
                     </div>
 
-                    <h3 class="mt-4">APY at Different Staking Levels</h3>
-                    <div class="table-container">
-                        <table id="staking-levels-table">
-                            <thead>
-                            <tr>
-                                <th>Staked %</th>
-                                <th>APY</th>
-                                <th>Risk Level</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <!-- Will be populated by JavaScript -->
-                            </tbody>
-                        </table>
+                    <div class="results" id="apy-results">
+                        <h3>Staking Rewards Analysis</h3>
+                        <div class="result-item">
+                            <span class="result-label">Collateral Ratio:</span>
+                            <span class="result-value" id="collateral-ratio">200.00%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Current Staking APY:</span>
+                            <span class="result-value" id="current-apy">21.33%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Effective Yield Multiple:</span>
+                            <span class="result-value" id="yield-multiple">2.67x</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Risk-Adjusted APY:</span>
+                            <span class="result-value" id="risk-adjusted-apy">19.84%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Annual Yield for $1,000:</span>
+                            <span class="result-value" id="annual-yield">$213.33</span>
+                        </div>
+
+                        <h3 class="mt-4">APY at Different Staking Levels</h3>
+                        <div class="table-container">
+                            <table id="staking-levels-table">
+                                <thead>
+                                <tr>
+                                    <th>Staked %</th>
+                                    <th>APY</th>
+                                    <th>Risk Level</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- Depeg Risk Calculator -->
-    <div class="tab-content" id="depeg-calculator">
-        <div class="calculator">
-            <h2>hyUSD Depeg Risk Calculator</h2>
-            <div class="grid">
-                <div>
-                    <div class="input-group">
-                        <label for="depeg-tvl">Total Protocol TVL (USD)</label>
-                        <input type="number" id="depeg-tvl" value="10000000" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="depeg-hyusd-supply">hyUSD Supply</label>
-                        <input type="number" id="depeg-hyusd-supply" value="5000000" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="depeg-staked-percentage">Staked hyUSD Percentage (%)</label>
-                        <input type="number" id="depeg-staked-percentage" value="30" min="1" max="100">
-                    </div>
-                    <div class="input-group">
-                        <label for="sol-price">Current SOL Price (USD)</label>
-                        <input type="number" id="sol-price" value="100" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="sol-price-drop">SOL Price Drop to Evaluate (%)</label>
-                        <input type="number" id="sol-price-drop" value="50" min="1" max="100">
-                    </div>
-                    <button id="calculate-depeg">Calculate Depeg Risk</button>
-                </div>
-
-                <div class="results" id="depeg-results">
-                    <h3>Depeg Risk Analysis</h3>
-                    <div class="result-item">
-                        <span class="result-label">Current Collateral Ratio:</span>
-                        <span class="result-value" id="current-cr">200.00%</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">CR After Price Drop:</span>
-                        <span class="result-value" id="after-drop-cr">100.00%</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Stability Mode Status:</span>
-                        <span class="result-value" id="stability-mode">Critical (Mode 2)</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Estimated hyUSD Converted:</span>
-                        <span class="result-value" id="hyusd-converted">750,000 (50.00%)</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Depeg Probability:</span>
-                        <span class="result-value risk-high" id="depeg-probability">High (75%)</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Max Safe SOL Drop:</span>
-                        <span class="result-value" id="max-safe-drop">47.50%</span>
+    <!-- Depeg Risk Calculator Template -->
+    <template id="depeg-calculator-template">
+        <div class="tab-content" id="depeg-calculator">
+            <div class="calculator">
+                <h2>hyUSD Depeg Risk Calculator</h2>
+                <div class="grid">
+                    <div>
+                        <div class="input-group">
+                            <label for="depeg-tvl">Total Protocol TVL (USD)</label>
+                            <input type="number" id="depeg-tvl" value="10000000" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="depeg-hyusd-supply">hyUSD Supply</label>
+                            <input type="number" id="depeg-hyusd-supply" value="5000000" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="depeg-staked-percentage">Staked hyUSD Percentage (%)</label>
+                            <input type="number" id="depeg-staked-percentage" value="30" min="1" max="100">
+                        </div>
+                        <div class="input-group">
+                            <label for="sol-price">Current SOL Price (USD)</label>
+                            <input type="number" id="sol-price" value="100" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="sol-price-drop">SOL Price Drop to Evaluate (%)</label>
+                            <input type="number" id="sol-price-drop" value="50" min="1" max="100">
+                        </div>
+                        <button id="calculate-depeg">Calculate Depeg Risk</button>
                     </div>
 
-                    <h3 class="mt-4">CR Thresholds</h3>
-                    <div class="table-container">
-                        <table>
-                            <tr>
-                                <td>CR > 150%</td>
-                                <td>Normal Operation</td>
-                            </tr>
-                            <tr>
-                                <td>130% < CR ≤ 150%</td>
-                                <td>
-                                    <a href="https://docs.hylo.so/protocol-overview/risk-management#stability-mode-1%3A-fee-controls"
-                                       target="_blank">Stability Mode 1 (Fee Adjustments)</a></td>
-                            </tr>
-                            <tr>
-                                <td>100% < CR ≤ 130%</td>
-                                <td>
-                                    <a href="https://docs.hylo.so/protocol-overview/risk-management#stability-mode-2%3A-stability-pool-drawdown"
-                                       target="_blank">Stability Mode 2 (Stability Pool Drawdown)</a></td>
-                            </tr>
-                            <tr>
-                                <td>CR ≤ 100%</td>
-                                <td>Depeg Risk (xSOL NAV = 0)</td>
-                            </tr>
-                        </table>
+                    <div class="results" id="depeg-results">
+                        <h3>Depeg Risk Analysis</h3>
+                        <div class="result-item">
+                            <span class="result-label">Current Collateral Ratio:</span>
+                            <span class="result-value" id="current-cr">200.00%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">CR After Price Drop:</span>
+                            <span class="result-value" id="after-drop-cr">100.00%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Stability Mode Status:</span>
+                            <span class="result-value" id="stability-mode">Critical (Mode 2)</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Estimated hyUSD Converted:</span>
+                            <span class="result-value" id="hyusd-converted">750,000 (50.00%)</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Depeg Probability:</span>
+                            <span class="result-value risk-high" id="depeg-probability">High (75%)</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Max Safe SOL Drop:</span>
+                            <span class="result-value" id="max-safe-drop">47.50%</span>
+                        </div>
+
+                        <h3 class="mt-4">CR Thresholds</h3>
+                        <div class="table-container">
+                            <table>
+                                <tr>
+                                    <td>CR > 150%</td>
+                                    <td>Normal Operation</td>
+                                </tr>
+                                <tr>
+                                    <td>130% < CR ≤ 150%</td>
+                                    <td>
+                                        <a href="https://docs.hylo.so/protocol-overview/risk-management#stability-mode-1%3A-fee-controls"
+                                           target="_blank">Stability Mode 1 (Fee Adjustments)</a></td>
+                                </tr>
+                                <tr>
+                                    <td>100% < CR ≤ 130%</td>
+                                    <td>
+                                        <a href="https://docs.hylo.so/protocol-overview/risk-management#stability-mode-2%3A-stability-pool-drawdown"
+                                           target="_blank">Stability Mode 2 (Stability Pool Drawdown)</a></td>
+                                </tr>
+                                <tr>
+                                    <td>CR ≤ 100%</td>
+                                    <td>Depeg Risk (xSOL NAV = 0)</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 
-    <!-- Stress Test -->
-    <div class="tab-content" id="stress-calculator">
-        <div class="calculator">
-            <h2>Hylo Protocol Stress Test</h2>
-            <div class="grid">
-                <div>
-                    <div class="input-group">
-                        <label for="stress-tvl">Initial Protocol TVL (USD)</label>
-                        <input type="number" id="stress-tvl" value="10000000" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="stress-hyusd-supply">hyUSD Supply</label>
-                        <input type="number" id="stress-hyusd-supply" value="5000000" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="stress-staked-percentage">Staked hyUSD Percentage (%)</label>
-                        <input type="number" id="stress-staked-percentage" value="30" min="1" max="100">
-                    </div>
-                    <div class="input-group">
-                        <label for="stress-sol-price">Initial SOL Price (USD)</label>
-                        <input type="number" id="stress-sol-price" value="100" min="1">
-                    </div>
-                    <div class="input-group">
-                        <label for="stress-scenario">Stress Scenario</label>
-                        <select id="stress-scenario">
-                            <option value="moderate">Moderate (30% drop over 7 days)</option>
-                            <option value="severe">Severe (50% drop over 3 days)</option>
-                            <option value="extreme">Extreme (70% drop over 5 days)</option>
-                            <option value="flash-crash">Flash Crash (40% drop in 1 day)</option>
-                            <option value="var-99">Value-at-Risk 99.9% (33% drop in 1 day)</option>
-                        </select>
-                    </div>
-                    <button id="run-stress-test">Run Stress Test</button>
-                </div>
-
-                <div class="results" id="stress-results">
-                    <h3>Stress Test Results</h3>
-
-                    <!-- Enhanced metrics with change indicators -->
-                    <div class="metric-cards">
-                        <div class="metric-card">
-                            <div class="title">Initial Collateral Ratio</div>
-                            <div class="value" id="initial-cr">200.00%</div>
+    <!-- Stress Test Template -->
+    <template id="stress-test-template">
+        <div class="tab-content" id="stress-calculator">
+            <div class="calculator">
+                <h2>Hylo Protocol Stress Test</h2>
+                <div class="grid">
+                    <div>
+                        <div class="input-group">
+                            <label for="stress-tvl">Initial Protocol TVL (USD)</label>
+                            <input type="number" id="stress-tvl" value="10000000" min="1">
                         </div>
-                        <div class="metric-card negative">
-                            <div class="title">Minimum Collateral Ratio</div>
-                            <div class="value" id="min-cr">124.50%</div>
-                            <div class="change-indicator change-negative" id="min-cr-change">-75.50%</div>
+                        <div class="input-group">
+                            <label for="stress-hyusd-supply">hyUSD Supply</label>
+                            <input type="number" id="stress-hyusd-supply" value="5000000" min="1">
                         </div>
-                        <div class="metric-card">
-                            <div class="title">Final Collateral Ratio</div>
-                            <div class="value" id="final-cr">165.25%</div>
-                            <div class="change-indicator" id="final-cr-change">-34.75%</div>
+                        <div class="input-group">
+                            <label for="stress-staked-percentage">Staked hyUSD Percentage (%)</label>
+                            <input type="number" id="stress-staked-percentage" value="30" min="1" max="100">
+                        </div>
+                        <div class="input-group">
+                            <label for="stress-sol-price">Initial SOL Price (USD)</label>
+                            <input type="number" id="stress-sol-price" value="100" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="stress-scenario">Stress Scenario</label>
+                            <select id="stress-scenario">
+                                <option value="moderate">Moderate (30% drop over 7 days)</option>
+                                <option value="severe">Severe (50% drop over 3 days)</option>
+                                <option value="extreme">Extreme (70% drop over 5 days)</option>
+                                <option value="flash-crash">Flash Crash (40% drop in 1 day)</option>
+                                <option value="var-99">Value-at-Risk 99.9% (33% drop in 1 day)</option>
+                            </select>
+                        </div>
+                        <button id="run-stress-test">Run Stress Test</button>
+                    </div>
+
+                    <div class="results" id="stress-results">
+                        <h3>Stress Test Results</h3>
+
+                        <!-- Enhanced metrics with change indicators -->
+                        <div class="metric-cards">
+                            <div class="metric-card">
+                                <div class="title">Initial Collateral Ratio</div>
+                                <div class="value" id="initial-cr">200.00%</div>
+                            </div>
+                            <div class="metric-card negative">
+                                <div class="title">Minimum Collateral Ratio</div>
+                                <div class="value" id="min-cr">124.50%</div>
+                                <div class="change-indicator change-negative" id="min-cr-change">-75.50%</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="title">Final Collateral Ratio</div>
+                                <div class="value" id="final-cr">165.25%</div>
+                                <div class="change-indicator" id="final-cr-change">-34.75%</div>
+                            </div>
+                        </div>
+
+                        <div class="result-item">
+                            <span class="result-label">Total hyUSD Converted:</span>
+                            <span class="result-value" id="stress-hyusd-converted">450,000 (30.00%)</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">CR Recovery After Drop:</span>
+                            <span class="result-value" id="cr-recovery">+40.75%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">xSOL Maximum Drawdown:</span>
+                            <span class="result-value" id="xsol-drawdown">-87.50%</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">xSOL Leverage Effect:</span>
+                            <span class="result-value" id="xsol-leverage">2.92x</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Closest To Depeg:</span>
+                            <span class="result-value" id="depeg-buffer">24.50% above depeg</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Protocol Survived Test:</span>
+                            <span class="result-value" id="survived">Yes (maintained peg)</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Days in Stability Mode 1:</span>
+                            <span class="result-value" id="days-mode1">3</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Days in Stability Mode 2:</span>
+                            <span class="result-value" id="days-mode2">2</span>
                         </div>
                     </div>
-
-                    <div class="result-item">
-                        <span class="result-label">Total hyUSD Converted:</span>
-                        <span class="result-value" id="stress-hyusd-converted">450,000 (30.00%)</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">CR Recovery After Drop:</span>
-                        <span class="result-value" id="cr-recovery">+40.75%</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">xSOL Maximum Drawdown:</span>
-                        <span class="result-value" id="xsol-drawdown">-87.50%</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">xSOL Leverage Effect:</span>
-                        <span class="result-value" id="xsol-leverage">2.92x</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Closest To Depeg:</span>
-                        <span class="result-value" id="depeg-buffer">24.50% above depeg</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Protocol Survived Test:</span>
-                        <span class="result-value" id="survived">Yes (maintained peg)</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Days in Stability Mode 1:</span>
-                        <span class="result-value" id="days-mode1">3</span>
-                    </div>
-                    <div class="result-item">
-                        <span class="result-label">Days in Stability Mode 2:</span>
-                        <span class="result-value" id="days-mode2">2</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="chart-tabs">
-                <div class="chart-tab active" data-chart="main">Main Metrics</div>
-                <div class="chart-tab" data-chart="leverage">Leverage Effect</div>
-                <div class="chart-tab" data-chart="changes">Changes from Initial</div>
-            </div>
-
-            <div class="charts-grid" id="main-charts">
-                <div class="chart-container">
-                    <canvas id="price-chart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="cr-chart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="xsol-chart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="conversion-chart"></canvas>
-                </div>
-            </div>
-
-            <div class="charts-grid" id="leverage-charts" style="display:none;">
-                <div class="chart-container">
-                    <canvas id="leverage-chart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="price-compare-chart"></canvas>
-                </div>
-            </div>
-
-            <div class="charts-grid" id="changes-charts" style="display:none;">
-                <div class="chart-container">
-                    <canvas id="cr-change-chart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <canvas id="depeg-buffer-chart"></canvas>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
+
+    <!-- Chart Tabs Template -->
+    <template id="chart-tabs-template">
+        <div class="chart-tabs">
+            <div class="chart-tab active" data-chart="main">Main Metrics</div>
+            <div class="chart-tab" data-chart="leverage">Leverage Effect</div>
+            <div class="chart-tab" data-chart="changes">Changes from Initial</div>
+        </div>
+    </template>
+
+    <!-- Charts Templates -->
+    <template id="main-charts-template">
+        <div class="charts-grid" id="main-charts">
+            <div class="chart-container">
+                <canvas id="price-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="cr-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="xsol-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="conversion-chart"></canvas>
+            </div>
+        </div>
+    </template>
+
+    <template id="leverage-charts-template">
+        <div class="charts-grid" id="leverage-charts" style="display:none;">
+            <div class="chart-container">
+                <canvas id="leverage-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="price-compare-chart"></canvas>
+            </div>
+        </div>
+    </template>
+
+    <template id="changes-charts-template">
+        <div class="charts-grid" id="changes-charts" style="display:none;">
+            <div class="chart-container">
+                <canvas id="cr-change-chart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="depeg-buffer-chart"></canvas>
+            </div>
+        </div>
+    </template>
+
+    <!-- Container for dynamic content -->
+    <div id="app-content"></div>
 </div>
 
-<script src="hylo-calculator.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!--<script src="hylo-calculator.js"></script>-->
+<script type="module" src="hylo-modules.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<script>
+    // Handle Chart.js loading errors
+    window.addEventListener('error', function (e) {
+        if (e.filename && e.filename.includes('chart.js')) {
+            console.warn('Warning: Chart.js failed to load properly. Charts may not display correctly.');
+        }
+    });
+</script>
 </body>
 </html>

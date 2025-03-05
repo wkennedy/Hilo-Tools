@@ -1,101 +1,21 @@
-// Hylo Protocol Calculators JavaScript
+// hylo-calculations.js - Pure calculation and business logic
 "use strict";
 
 // ============================================================================
-// INITIALIZATION
-// ============================================================================
-
-// Chart instances for all visualizations
-let priceChart, crChart, xsolChart, conversionChart;
-let effectiveLeverageChart, priceCompareChart, crChangeChart, bufferAboveDepegChart;
-
-// DOM ready event handler
-document.addEventListener('DOMContentLoaded', function () {
-    initTabNavigation();
-    initCalculators();
-});
-
-// ============================================================================
-// UI INITIALIZATION
+// APY CALCULATOR FUNCTIONS
 // ============================================================================
 
 /**
- * Initialize tab navigation for both main tabs and chart tabs
+ * Calculate APY results based on input parameters
+ *
+ * @param {number} tvl - Total Value Locked in USD
+ * @param {number} hyusdSupply - hyUSD Supply
+ * @param {number} stakedPercentage - Percentage of hyUSD staked
+ * @param {number} baseYield - Base LST Yield percentage
+ * @param {number} yieldDistribution - Yield Distribution to Stakers percentage
+ * @returns {Object} Results object with calculated values
  */
-function initTabNavigation() {
-    // Main tab navigation
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.getAttribute('data-tab');
-
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(content => content.classList.remove('active'));
-
-            tab.classList.add('active');
-            document.getElementById(`${tabId}-calculator`).classList.add('active');
-        });
-    });
-
-    // Chart tab navigation
-    const chartTabs = document.querySelectorAll('.chart-tab');
-
-    chartTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            chartTabs.forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-
-            // Hide all chart grids
-            document.getElementById('main-charts').style.display = 'none';
-            document.getElementById('leverage-charts').style.display = 'none';
-            document.getElementById('changes-charts').style.display = 'none';
-
-            // Show the selected chart grid
-            const chartType = tab.getAttribute('data-chart');
-            document.getElementById(`${chartType}-charts`).style.display = 'grid';
-        });
-    });
-}
-
-/**
- * Initialize calculators and button event listeners
- */
-function initCalculators() {
-    // APY Calculator
-    const calculateApyButton = document.getElementById('calculate-apy');
-    calculateApyButton.addEventListener('click', calculateApy);
-
-    // Depeg Risk Calculator
-    const calculateDepegButton = document.getElementById('calculate-depeg');
-    calculateDepegButton.addEventListener('click', calculateDepegRisk);
-
-    // Stress Test
-    const runStressTestButton = document.getElementById('run-stress-test');
-    runStressTestButton.addEventListener('click', runStressTest);
-
-    // Run initial calculations
-    calculateApy();
-    calculateDepegRisk();
-    runStressTest();
-}
-
-// ============================================================================
-// APY CALCULATOR
-// ============================================================================
-
-/**
- * Calculate APY based on input parameters
- */
-function calculateApy() {
-    // Get input values
-    const tvl = parseFloat(document.getElementById('tvl').value);
-    const hyusdSupply = parseFloat(document.getElementById('hyusd-supply').value);
-    const stakedPercentage = parseFloat(document.getElementById('staked-percentage').value);
-    const baseYield = parseFloat(document.getElementById('base-yield').value);
-    const yieldDistribution = parseFloat(document.getElementById('yield-distribution').value);
-
+export function calculateApyResults(tvl, hyusdSupply, stakedPercentage, baseYield, yieldDistribution) {
     // Calculate metrics
     const collateralRatio = (tvl / hyusdSupply) * 100;
     const stakedHyusd = hyusdSupply * (stakedPercentage / 100);
@@ -107,138 +27,25 @@ function calculateApy() {
     const riskAdjustedApy = rawApy * (1 - riskFactor);
     const annualYield = (rawApy / 100) * 1000; // for $1000 investment
 
-    // Update results
-    document.getElementById('collateral-ratio').textContent = collateralRatio.toFixed(2) + '%';
-    document.getElementById('current-apy').textContent = rawApy.toFixed(2) + '%';
-    document.getElementById('yield-multiple').textContent = yieldMultiple.toFixed(2) + 'x';
-    document.getElementById('risk-adjusted-apy').textContent = riskAdjustedApy.toFixed(2) + '%';
-    document.getElementById('annual-yield').textContent = '$' + annualYield.toFixed(2);
+    // Generate staking levels data
+    const stakingLevels = calculateStakingLevels(tvl, hyusdSupply, baseYield, yieldDistribution);
 
-    // Update staking levels table
-    updateStakingLevelsTable(tvl, hyusdSupply, baseYield, yieldDistribution, collateralRatio);
-}
-
-/**
- * Calculate risk factor based on collateral ratio
- *
- * The risk factor in the APY calculator represents the probability that staked hyUSD will be converted to xSOL during
- * market stress. This conversion risk increases as the collateral ratio decreases:
- *
- * CR < 130%: Risk factor = 0.4 (40% chance of conversion)
- * CR < 150%: Risk factor = 0.2 (20% chance)
- * CR < 180%: Risk factor = 0.1 (10% chance)
- * CR ≥ 180%: Risk factor = 0.05 (5% chance)
- *
- * The risk-adjusted APY is calculated as: Raw APY × (1 - Risk Factor)
- * This gives a more realistic yield expectation accounting for potential conversion events, which represent a form of
- * impermanent loss since xSOL would likely be worth less during such events.
- *
- * @param {number} collateralRatio - The collateral ratio percentage
- * @returns {number} Risk factor (0-1)
- */
-function calculateRiskFactor(collateralRatio) {
-    if (collateralRatio < 130) return 0.4;      // High risk
-    if (collateralRatio < 150) return 0.2;      // Medium risk
-    if (collateralRatio < 180) return 0.1;      // Low risk
-    return 0.05;                               // Very low risk
-}
-
-/**
- * Update staking levels table with APY for different staking percentages
- */
-function updateStakingLevelsTable(tvl, hyusdSupply, baseYield, yieldDistribution, collateralRatio) {
-    const tbody = document.querySelector('#staking-levels-table tbody');
-    tbody.innerHTML = '';
-
-    const stakingLevels = [10, 20, 30, 40, 50, 60, 70, 80, 90];
-
-    stakingLevels.forEach(stakingLevel => {
-        const stakedHyusd = hyusdSupply * (stakingLevel / 100);
-        const yieldMultiple = tvl / stakedHyusd;
-        const apy = baseYield * (yieldDistribution / 100) * yieldMultiple;
-
-        // Determine risk level
-        let riskLevel, riskClass;
-        if (stakingLevel < 20) {
-            riskLevel = 'High';
-            riskClass = 'risk-high';
-        } else if (stakingLevel < 40) {
-            riskLevel = 'Medium';
-            riskClass = 'risk-medium';
-        } else {
-            riskLevel = 'Low';
-            riskClass = 'risk-low';
-        }
-
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${stakingLevel}%</td>
-            <td>${apy.toFixed(2)}%</td>
-            <td class="${riskClass}">${riskLevel}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
-
-// ============================================================================
-// DEPEG RISK CALCULATOR
-// ============================================================================
-
-/**
- * Calculate depeg risk based on input parameters
- */
-function calculateDepegRisk() {
-    // Get input values
-    const tvl = parseFloat(document.getElementById('depeg-tvl').value);
-    const hyusdSupply = parseFloat(document.getElementById('depeg-hyusd-supply').value);
-    const stakedPercentage = parseFloat(document.getElementById('depeg-staked-percentage').value);
-    const solPrice = parseFloat(document.getElementById('sol-price').value);
-    const solPriceDrop = parseFloat(document.getElementById('sol-price-drop').value);
-
-    // Calculate metrics
-    const currentCr = (tvl / hyusdSupply) * 100;
-    const stakedHyusd = hyusdSupply * (stakedPercentage / 100);
-
-    // Calculate new TVL and CR after price drop
-    const newSolPrice = solPrice * (1 - (solPriceDrop / 100));
-    const newTvl = tvl * (newSolPrice / solPrice);
-    const afterDropCr = (newTvl / hyusdSupply) * 100;
-
-    // Determine stability mode
-    const {stabilityMode, stabilityModeClass} = determineStabilityMode(afterDropCr);
-
-    // Estimate hyUSD conversion from stability pool
-    const {hyusdConverted, conversionPercentage} = calculateHyusdConversion(afterDropCr, stakedHyusd);
-
-    // Calculate depeg probability
-    const {depegProbability, depegLevel, depegClass} = calculateDepegProbability(afterDropCr);
-
-    // Calculate maximum safe SOL drop
-    const maxSafeDrop = (1 - (130 / currentCr)) * 100;
-
-    // Update results
-    document.getElementById('current-cr').textContent = currentCr.toFixed(2) + '%';
-    document.getElementById('after-drop-cr').textContent = afterDropCr.toFixed(2) + '%';
-
-    const stabilityModeElement = document.getElementById('stability-mode');
-    stabilityModeElement.textContent = stabilityMode;
-    stabilityModeElement.className = 'result-value ' + stabilityModeClass;
-
-    document.getElementById('hyusd-converted').textContent =
-        hyusdConverted.toLocaleString(undefined, {maximumFractionDigits: 0}) +
-        ' (' + conversionPercentage.toFixed(2) + '%)';
-
-    const depegProbabilityElement = document.getElementById('depeg-probability');
-    depegProbabilityElement.textContent = depegLevel + ' (' + depegProbability + '%)';
-    depegProbabilityElement.className = 'result-value ' + depegClass;
-
-    document.getElementById('max-safe-drop').textContent = maxSafeDrop.toFixed(2) + '%';
+    return {
+        collateralRatio,
+        stakedHyusd,
+        yieldMultiple,
+        rawApy,
+        riskFactor,
+        riskAdjustedApy,
+        annualYield,
+        stakingLevels
+    };
 }
 
 /**
  * Determine stability mode based on collateral ratio
- * @param {number} cr - Collateral ratio after price drop
- * @returns {Object} Stability mode info
+ * @param {number} cr - Collateral ratio percentage
+ * @returns {Object} Stability mode info with mode and CSS class
  */
 function determineStabilityMode(cr) {
     if (cr <= 100) {
@@ -264,89 +71,76 @@ function determineStabilityMode(cr) {
     }
 }
 
-/**
- * Calculate hyUSD conversion amount based on CR
- * @param {number} cr - Collateral ratio
- * @param {number} stakedHyusd - Amount of staked hyUSD
- * @returns {Object} Conversion amounts
- */
-function calculateHyusdConversion(cr, stakedHyusd) {
-    if (cr <= 130) {
-        // Conversion rate increases as CR drops below 130%
-        const conversionRate = Math.min(1, (130 - cr) / 30);
-        const hyusdConverted = stakedHyusd * conversionRate;
-        const conversionPercentage = (hyusdConverted / stakedHyusd) * 100;
-        return {hyusdConverted, conversionPercentage};
-    }
-    return {hyusdConverted: 0, conversionPercentage: 0};
-}
-
-/**
- * Calculate depeg probability based on collateral ratio
- * @param {number} cr - Collateral ratio
- * @returns {Object} Depeg risk information
- */
-function calculateDepegProbability(cr) {
-    if (cr <= 100) {
-        return {depegProbability: 99, depegLevel: 'Extreme', depegClass: 'risk-high'};
-    } else if (cr <= 110) {
-        return {depegProbability: 75, depegLevel: 'High', depegClass: 'risk-high'};
-    } else if (cr <= 120) {
-        return {depegProbability: 50, depegLevel: 'Medium', depegClass: 'risk-medium'};
-    } else if (cr <= 130) {
-        return {depegProbability: 25, depegLevel: 'Low', depegClass: 'risk-low'};
-    } else {
-        return {depegProbability: 5, depegLevel: 'Very Low', depegClass: 'risk-low'};
-    }
-}
-
 // ============================================================================
-// STRESS TEST
+// STRESS TEST FUNCTIONS
 // ============================================================================
 
 /**
- * Run stress test simulation with chosen scenario
+ * Run stress test based on input parameters
+ *
+ * @param {number} tvl - Total Value Locked in USD
+ * @param {number} hyusdSupply - hyUSD Supply
+ * @param {number} stakedPercentage - Percentage of hyUSD staked
+ * @param {number} solPrice - Current SOL Price in USD
+ * @param {string} scenario - Stress scenario to run
+ * @returns {Object} Results with simulation data and metrics
  */
-function runStressTest() {
-    // Get input values
-    const tvl = parseFloat(document.getElementById('stress-tvl').value);
-    const hyusdSupply = parseFloat(document.getElementById('stress-hyusd-supply').value);
-    const stakedPercentage = parseFloat(document.getElementById('stress-staked-percentage').value);
-    const solPrice = parseFloat(document.getElementById('stress-sol-price').value);
-    const scenario = document.getElementById('stress-scenario').value;
-
+export function runStressTest(tvl, hyusdSupply, stakedPercentage, solPrice, scenario) {
     // Define scenario parameters
     const {dropPercent, dropDays} = getScenarioParameters(scenario);
 
-    // Run full stress test simulation with detailed data for charts
+    // Run full stress test simulation
     const simulationData = runDetailedSimulation(tvl, hyusdSupply, stakedPercentage, solPrice, dropPercent, dropDays);
 
-    // Update UI with simulation results
-    updateStressTestResults(simulationData, tvl, hyusdSupply, stakedPercentage, dropPercent);
+    // Calculate key metrics
+    const initialCr = (tvl / hyusdSupply) * 100;
+    const minCr = Math.min(...simulationData.map(day => day.collateralRatio));
+    const finalCr = simulationData[simulationData.length - 1].collateralRatio;
+    const totalHyusdConverted = simulationData.reduce((sum, day) => sum + day.hyusdConverted, 0);
+    const xsolDrawdown = ((Math.min(...simulationData.map(day => day.xsolPrice)) / simulationData[0].xsolPrice) - 1) * 100;
+    const daysInMode1 = simulationData.filter(day => day.stabilityMode === 'mode1').length;
+    const daysInMode2 = simulationData.filter(day => day.stabilityMode === 'mode2').length;
 
-    // Update charts
-    updateCharts(simulationData);
+    // Calculate additional metrics
+    const stakedHyusd = hyusdSupply * (stakedPercentage / 100);
+    const conversionPercentage = (totalHyusdConverted / stakedHyusd) * 100;
+    const xsolLeverage = Math.abs(xsolDrawdown / (dropPercent * -1));
+    const survived = minCr > 100;
+    const depegBuffer = minCr - 100;
+    const crRecovery = finalCr - minCr;
+
+    // Calculate percentage changes
+    const minCrChangePercent = ((minCr - initialCr) / initialCr) * 100;
+    const finalCrChangePercent = ((finalCr - initialCr) / initialCr) * 100;
+
+    return {
+        // Basic simulation info
+        initialCr,
+        minCr,
+        finalCr,
+        minCrChangePercent,
+        finalCrChangePercent,
+
+        // Conversion and stability metrics
+        totalHyusdConverted,
+        conversionPercentage,
+        xsolDrawdown,
+        xsolLeverage,
+        depegBuffer,
+        crRecovery,
+
+        // Status metrics
+        survived,
+        daysInMode1,
+        daysInMode2,
+
+        // Full simulation data for charts
+        dailyData: simulationData
+    };
 }
 
 /**
  * Get scenario parameters based on selection
- *
- * Value-at-Risk (VaR) 99.9% refers to a statistical risk measure that estimates the maximum potential loss in value
- * over a specified time period under normal market conditions, with 99.9% confidence.
- * In Hylo's context, their VaR analysis shows:
- *
- * 99.9% VaR of -32.95% for a one-day SOL price drop
- * 99.9% VaR of -56.82% for a 31-day SOL price drop
- *
- * This means there's only a 0.1% probability (one day in a thousand) that SOL would experience a larger price drop
- * than these values in the specified timeframes.
- * The protocol uses these VaR calculations to set their stability thresholds:
- *
- * The 150% CR threshold for Stability Mode 1 is designed to handle the one-day 99.9% VaR scenario
- * The 230% Adjusted CR target accounts for the 31-day 99.9% VaR scenario
- *
- * This approach provides statistical confidence that the protocol can withstand extreme but plausible market conditions.
- *
  * @param {string} scenario - Selected scenario
  * @returns {Object} Parameters for scenario
  */
@@ -368,41 +162,14 @@ function getScenarioParameters(scenario) {
 }
 
 /**
- * Update stress test results in the UI
- */
-function updateStressTestResults(simulationData, tvl, hyusdSupply, stakedPercentage, dropPercent) {
-    // Calculate key metrics
-    const results = {
-        minCr: Math.min(...simulationData.map(day => day.collateralRatio)),
-        totalHyusdConverted: simulationData.reduce((sum, day) => sum + day.hyusdConverted, 0),
-        xsolDrawdown: ((Math.min(...simulationData.map(day => day.xsolPrice)) / simulationData[0].xsolPrice) - 1) * 100,
-        daysInMode1: simulationData.filter(day => day.stabilityMode === 'mode1').length,
-        daysInMode2: simulationData.filter(day => day.stabilityMode === 'mode2').length
-    };
-
-    // Calculate additional metrics
-    results.conversionPercentage = (results.totalHyusdConverted / (hyusdSupply * (stakedPercentage / 100))) * 100;
-    results.xsolLeverage = Math.abs(results.xsolDrawdown / (dropPercent * -1));
-    results.survived = results.minCr > 100;
-
-    // Update results in the UI
-    document.getElementById('min-cr').textContent = results.minCr.toFixed(2) + '%';
-    document.getElementById('stress-hyusd-converted').textContent =
-        results.totalHyusdConverted.toLocaleString(undefined, {maximumFractionDigits: 0}) +
-        ' (' + results.conversionPercentage.toFixed(2) + '%)';
-    document.getElementById('xsol-drawdown').textContent = results.xsolDrawdown.toFixed(2) + '%';
-    document.getElementById('xsol-leverage').textContent = results.xsolLeverage.toFixed(2) + 'x';
-
-    const survivedElement = document.getElementById('survived');
-    survivedElement.textContent = results.survived ? 'Yes (maintained peg)' : 'No (lost peg)';
-    survivedElement.className = 'result-value ' + (results.survived ? 'risk-low' : 'risk-high');
-
-    document.getElementById('days-mode1').textContent = results.daysInMode1;
-    document.getElementById('days-mode2').textContent = results.daysInMode2;
-}
-
-/**
  * Run detailed simulation of protocol behavior
+ * @param {number} initialTvl - Initial TVL
+ * @param {number} hyusdSupply - hyUSD supply
+ * @param {number} stakedPercentage - Staked percentage
+ * @param {number} initialSolPrice - Initial SOL price
+ * @param {number} dropPercent - Price drop percentage
+ * @param {number} dropDays - Days over which drop occurs
+ * @returns {Array} Daily simulation data
  */
 function runDetailedSimulation(initialTvl, hyusdSupply, stakedPercentage, initialSolPrice, dropPercent, dropDays) {
     // Setup initial state
@@ -459,33 +226,31 @@ function runDetailedSimulation(initialTvl, hyusdSupply, stakedPercentage, initia
         simulationData[day] = dayData;
     }
 
-    // Add recovery metrics
-    simulationData.totalCrRecovery = simulationData[simulationData.length - 1].collateralRatio -
-        simulationData[dropDays].collateralRatio;
-
     // Ensure conversion data for visualization
     ensureConversionData(simulationData, stakedHyusd);
-
-    // Update initial CR display
-    document.getElementById('initial-cr').textContent = `${initialCr.toFixed(2)}%`;
 
     return simulationData;
 }
 
 /**
  * Generate price path for the simulation
+ * @param {number} initialSolPrice - Starting SOL price
+ * @param {number} dropPercent - Percentage to drop
+ * @param {number} dropDays - Days over which drop occurs
+ * @returns {Array} Daily price values
  */
 function generatePricePath(initialSolPrice, dropPercent, dropDays) {
     const pricePath = [];
 
-    // Price drop phase
+    // Price drop phase - notice we're iterating from 0 to dropDays (inclusive),
+    // which gives dropDays + 1 elements
     for (let day = 0; day <= dropDays; day++) {
         const dropProgress = day / dropDays;
         const dayPrice = initialSolPrice * (1 - (dropProgress * (dropPercent / 100)));
         pricePath.push(dayPrice);
     }
 
-    // Recovery phase
+    // Recovery phase - add 10 more days
     const lowestPrice = initialSolPrice * (1 - (dropPercent / 100));
     for (let day = 1; day <= 10; day++) {
         const recoveryProgress = day / 10;
@@ -494,11 +259,22 @@ function generatePricePath(initialSolPrice, dropPercent, dropDays) {
         pricePath.push(dayPrice);
     }
 
+    // This results in dropDays + 1 + 10 days total
     return pricePath;
 }
 
 /**
  * Initialize day data with enhanced analytics
+ * @param {number} day - Day number
+ * @param {number} currentSolPrice - Current SOL price
+ * @param {number} initialSolPrice - Initial SOL price
+ * @param {number} currentTvl - Current TVL
+ * @param {number} initialTvl - Initial TVL
+ * @param {number} dailyCr - Daily collateral ratio
+ * @param {number} initialCr - Initial collateral ratio
+ * @param {number} currentHyusdSupply - Current hyUSD supply
+ * @param {number} stakedHyusd - Amount of staked hyUSD
+ * @returns {Object} Day data
  */
 function initDayData(day, currentSolPrice, initialSolPrice, currentTvl, initialTvl,
                      dailyCr, initialCr, currentHyusdSupply, stakedHyusd) {
@@ -528,6 +304,11 @@ function initDayData(day, currentSolPrice, initialSolPrice, currentTvl, initialT
 
 /**
  * Update xSOL metrics in day data
+ * @param {Object} dayData - Day data object
+ * @param {number} currentTvl - Current TVL
+ * @param {number} currentHyusdSupply - Current hyUSD supply
+ * @param {number} currentXsolSupply - Current xSOL supply
+ * @param {number} initialXsolPrice - Initial xSOL price
  */
 function updateXsolMetrics(dayData, currentTvl, currentHyusdSupply, currentXsolSupply, initialXsolPrice) {
     const currentVariableReserve = currentTvl - currentHyusdSupply;
@@ -545,6 +326,12 @@ function updateXsolMetrics(dayData, currentTvl, currentHyusdSupply, currentXsolS
 
 /**
  * Apply stability mode actions
+ * @param {Object} dayData - Day data object
+ * @param {number} dailyCr - Daily collateral ratio
+ * @param {number} initialCr - Initial collateral ratio
+ * @param {number} stakedHyusd - Staked hyUSD amount
+ * @param {number} currentHyusdSupply - Current hyUSD supply
+ * @param {number} currentXsolSupply - Current xSOL supply
  */
 function applyStabilityMode(dayData, dailyCr, initialCr, stakedHyusd, currentHyusdSupply, currentXsolSupply) {
     // Make conversion rate proportional to distance from initialCr
@@ -575,6 +362,8 @@ function applyStabilityMode(dayData, dailyCr, initialCr, stakedHyusd, currentHyu
 
 /**
  * Ensure conversion data exists for visualization
+ * @param {Array} simulationData - Simulation data array
+ * @param {number} stakedHyusd - Staked hyUSD amount
  */
 function ensureConversionData(simulationData, stakedHyusd) {
     const hasConversions = simulationData.some(day => day && day.hyusdConverted > 0);
@@ -591,338 +380,138 @@ function ensureConversionData(simulationData, stakedHyusd) {
     }
 }
 
+/**
+ * Calculate hyUSD conversion amount based on CR
+ * @param {number} cr - Collateral ratio percentage
+ * @param {number} stakedHyusd - Amount of staked hyUSD
+ * @returns {Object} Conversion amounts and percentages
+ */
+function calculateHyusdConversion(cr, stakedHyusd) {
+    if (cr <= 130) {
+        // Conversion rate increases as CR drops below 130%
+        const conversionRate = Math.min(1, (130 - cr) / 30);
+        const hyusdConverted = stakedHyusd * conversionRate;
+        const conversionPercentage = (hyusdConverted / stakedHyusd) * 100;
+        return {hyusdConverted, conversionPercentage};
+    }
+    return {hyusdConverted: 0, conversionPercentage: 0};
+}
+
+/**
+ * Calculate depeg probability based on collateral ratio
+ * @param {number} cr - Collateral ratio percentage
+ * @returns {Object} Depeg risk information with probability, level and CSS class
+ */
+function calculateDepegProbability(cr) {
+    if (cr <= 100) {
+        return {depegProbability: 99, depegLevel: 'Extreme', depegClass: 'risk-high'};
+    } else if (cr <= 110) {
+        return {depegProbability: 75, depegLevel: 'High', depegClass: 'risk-high'};
+    } else if (cr <= 120) {
+        return {depegProbability: 50, depegLevel: 'Medium', depegClass: 'risk-medium'};
+    } else if (cr <= 130) {
+        return {depegProbability: 25, depegLevel: 'Low', depegClass: 'risk-low'};
+    } else {
+        return {depegProbability: 5, depegLevel: 'Very Low', depegClass: 'risk-low'};
+    }
+}
+
+/**
+ * Calculate risk factor based on collateral ratio
+ * @param {number} collateralRatio - Collateral ratio percentage
+ * @returns {number} Risk factor (0-1)
+ */
+function calculateRiskFactor(collateralRatio) {
+    if (collateralRatio < 130) return 0.4;      // High risk
+    if (collateralRatio < 150) return 0.2;      // Medium risk
+    if (collateralRatio < 180) return 0.1;      // Low risk
+    return 0.05;                               // Very low risk
+}
+
+/**
+ * Calculate APY for different staking percentage levels
+ * @param {number} tvl - Total Value Locked
+ * @param {number} hyusdSupply - hyUSD Supply
+ * @param {number} baseYield - Base yield percentage
+ * @param {number} yieldDistribution - Yield distribution percentage
+ * @returns {Array} Array of staking level objects with APY and risk info
+ */
+function calculateStakingLevels(tvl, hyusdSupply, baseYield, yieldDistribution) {
+    const stakingLevels = [10, 20, 30, 40, 50, 60, 70, 80, 90];
+
+    return stakingLevels.map(percentage => {
+        const stakedHyusd = hyusdSupply * (percentage / 100);
+        const yieldMultiple = tvl / stakedHyusd;
+        const apy = baseYield * (yieldDistribution / 100) * yieldMultiple;
+
+        // Determine risk level
+        let riskLevel, riskClass;
+        if (percentage < 20) {
+            riskLevel = 'High';
+            riskClass = 'risk-high';
+        } else if (percentage < 40) {
+            riskLevel = 'Medium';
+            riskClass = 'risk-medium';
+        } else {
+            riskLevel = 'Low';
+            riskClass = 'risk-low';
+        }
+
+        return {
+            percentage,
+            apy,
+            riskLevel,
+            riskClass
+        };
+    });
+}
+
 // ============================================================================
-// CHART VISUALIZATION
+// DEPEG RISK CALCULATOR FUNCTIONS
 // ============================================================================
 
 /**
- * Update all charts with simulation data
+ * Calculate depeg risk results based on input parameters
+ *
+ * @param {number} tvl - Total Value Locked in USD
+ * @param {number} hyusdSupply - hyUSD Supply
+ * @param {number} stakedPercentage - Percentage of hyUSD staked
+ * @param {number} solPrice - Current SOL Price in USD
+ * @param {number} solPriceDrop - SOL Price Drop to Evaluate (percentage)
+ * @returns {Object} Results object with calculated values
  */
-function updateCharts(simulationData) {
-    // Create configuration objects for main charts
-    const chartConfigs = {
-        price: createPriceChartConfig(simulationData),
-        cr: createCRChartConfig(simulationData),
-        xsol: createXsolChartConfig(simulationData),
-        conversion: createConversionChartConfig(simulationData)
-    };
+export function calculateDepegRiskResults(tvl, hyusdSupply, stakedPercentage, solPrice, solPriceDrop) {
+    // Calculate metrics
+    const currentCr = (tvl / hyusdSupply) * 100;
+    const stakedHyusd = hyusdSupply * (stakedPercentage / 100);
 
-    // Create and update the main charts
-    updateMainCharts(chartConfigs, simulationData);
+    // Calculate new TVL and CR after price drop
+    const newSolPrice = solPrice * (1 - (solPriceDrop / 100));
+    const newTvl = tvl * (newSolPrice / solPrice);
+    const afterDropCr = (newTvl / hyusdSupply) * 100;
 
-    // Create and update additional chart sets
-    updateLeverageCharts(simulationData);
-    updateChangeCharts(simulationData);
-}
+    // Determine stability mode
+    const {stabilityMode, stabilityModeClass} = determineStabilityMode(afterDropCr);
 
-/**
- * Create price chart configuration
- */
-function createPriceChartConfig(simulationData) {
+    // Estimate hyUSD conversion from stability pool
+    const {hyusdConverted, conversionPercentage} = calculateHyusdConversion(afterDropCr, stakedHyusd);
+
+    // Calculate depeg probability
+    const {depegProbability, depegLevel, depegClass} = calculateDepegProbability(afterDropCr);
+
+    // Calculate maximum safe SOL drop
+    const maxSafeDrop = (1 - (130 / currentCr)) * 100;
+
     return {
-        type: 'line',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [{
-                label: 'SOL Price (USD)',
-                data: simulationData.map(day => day.solPrice),
-                borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'SOL Price Path'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'Price (USD)'
-                    }
-                }
-            }
-        }
+        currentCr,
+        afterDropCr,
+        stabilityMode,
+        stabilityModeClass,
+        hyusdConverted,
+        conversionPercentage,
+        depegProbability,
+        depegLevel,
+        depegClass,
+        maxSafeDrop
     };
-}
-
-/**
- * Create collateral ratio chart configuration
- */
-function createCRChartConfig(simulationData) {
-    return {
-        type: 'line',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [{
-                label: 'Collateral Ratio (%)',
-                data: simulationData.map(day => day.collateralRatio),
-                borderColor: 'rgb(153, 102, 255)',
-                tension: 0.1,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Collateral Ratio'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'CR (%)'
-                    }
-                }
-            }
-        }
-    };
-}
-
-/**
- * Create xSOL price chart configuration
- */
-function createXsolChartConfig(simulationData) {
-    return {
-        type: 'line',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [{
-                label: 'xSOL Price (USD)',
-                data: simulationData.map(day => day.xsolPrice),
-                borderColor: 'rgb(255, 159, 64)',
-                tension: 0.1,
-                fill: false
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'xSOL Price'
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: false,
-                    title: {
-                        display: true,
-                        text: 'Price (USD)'
-                    }
-                }
-            }
-        }
-    };
-}
-
-/**
- * Create conversion chart configuration
- */
-function createConversionChartConfig(simulationData) {
-    return {
-        type: 'bar',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [{
-                label: 'hyUSD Converted',
-                data: simulationData.map(day => day.hyusdConverted),
-                backgroundColor: 'rgb(255, 99, 132)',
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Daily hyUSD Conversion'
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function (context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += new Intl.NumberFormat('en-US', {
-                                    style: 'decimal',
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 0
-                                }).format(context.parsed.y);
-                            }
-                            return label;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Amount'
-                    }
-                }
-            }
-        }
-    };
-}
-
-/**
- * Update the main charts (price, CR, xSOL, conversion)
- */
-function updateMainCharts(chartConfigs, simulationData) {
-    // Destroy existing charts if they exist
-    if (priceChart) priceChart.destroy();
-    if (crChart) crChart.destroy();
-    if (xsolChart) xsolChart.destroy();
-    if (conversionChart) conversionChart.destroy();
-
-    // Create new charts
-    const priceCtx = document.getElementById('price-chart').getContext('2d');
-    priceChart = new Chart(priceCtx, chartConfigs.price);
-
-    const crCtx = document.getElementById('cr-chart').getContext('2d');
-    crChart = new Chart(crCtx, chartConfigs.cr);
-
-    const xsolCtx = document.getElementById('xsol-chart').getContext('2d');
-    xsolChart = new Chart(xsolCtx, chartConfigs.xsol);
-
-    const conversionCtx = document.getElementById('conversion-chart').getContext('2d');
-    conversionChart = new Chart(conversionCtx, chartConfigs.conversion);
-}
-
-/**
- * Update leverage effect charts
- */
-function updateLeverageCharts(simulationData) {
-    // Destroy existing charts if they exist
-    if (effectiveLeverageChart) effectiveLeverageChart.destroy();
-    if (priceCompareChart) priceCompareChart.destroy();
-
-    // Create effective leverage chart
-    const leverageCtx = document.getElementById('leverage-chart').getContext('2d');
-    effectiveLeverageChart = new Chart(leverageCtx, {
-        type: 'line',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [{
-                label: 'Effective Leverage',
-                data: simulationData.map(day => day.effectiveLeverage || 0),
-                borderColor: 'purple',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'xSOL Effective Leverage'
-                }
-            }
-        }
-    });
-
-    // Create price comparison chart
-    const priceCompareCtx = document.getElementById('price-compare-chart').getContext('2d');
-    priceCompareChart = new Chart(priceCompareCtx, {
-        type: 'line',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [
-                {
-                    label: 'SOL Price %',
-                    data: simulationData.map(day => day.solPriceChangePercent || 0),
-                    borderColor: 'blue',
-                    tension: 0.1
-                },
-                {
-                    label: 'xSOL Price %',
-                    data: simulationData.map(day => day.xsolPriceChangePercent || 0),
-                    borderColor: 'red',
-                    tension: 0.1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Price Change Comparison (%)'
-                }
-            }
-        }
-    });
-}
-
-/**
- * Update collateral ratio change charts
- */
-function updateChangeCharts(simulationData) {
-    // Destroy existing charts if they exist
-    if (crChangeChart) crChangeChart.destroy();
-    if (bufferAboveDepegChart) bufferAboveDepegChart.destroy();
-
-    // Create CR change chart
-    const crChangeCtx = document.getElementById('cr-change-chart').getContext('2d');
-    crChangeChart = new Chart(crChangeCtx, {
-        type: 'line',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [{
-                label: 'CR Change from Initial',
-                data: simulationData.map(day => day.crChangeFromInitial || 0),
-                borderColor: 'green',
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Collateral Ratio Change'
-                }
-            }
-        }
-    });
-
-    // Create depeg buffer chart
-    const depegBufferCtx = document.getElementById('depeg-buffer-chart').getContext('2d');
-    bufferAboveDepegChart = new Chart(depegBufferCtx, {
-        type: 'line',
-        data: {
-            labels: simulationData.map(day => `Day ${day.day}`),
-            datasets: [{
-                label: 'Buffer Above Depeg (%)',
-                data: simulationData.map(day => day.depegBuffer || 0),
-                borderColor: '#ff7300',
-                backgroundColor: 'rgba(255, 115, 0, 0.1)',
-                fill: true,
-                tension: 0.1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Distance from Depeg (100% CR)'
-                }
-            }
-        }
-    });
 }

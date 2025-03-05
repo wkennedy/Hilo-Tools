@@ -1,37 +1,16 @@
-name: Test
+name: Node.js Package
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  release:
+    types: [created]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [16.x, 18.x, 20.x]
-
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests with coverage
-        run: npm run test:coverage
-
-#      - name: Upload coverage to Codecov
-#        uses: codecov/codecov-action@v3
-#        with:
-#          directory: ./coverage/
-#          fail_ci_if_error: true
-#          verbose: true
+          node-version: 20
+      - run: npm ci
+      - run: npm test
